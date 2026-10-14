@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Chantier Électrique</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Maquette 3D collée en haut, fiche du chantier et questions dessous. Couleurs des fils : marron, bleu, vert-jaune. */
+:root{
+  --bg:#EEEFEF;--card:#FFFFFF;--card2:#E7E8E8;--ink:#1F2A37;--mute:#5C6672;--line:#D2D5D8;
+  --brand:#C4520C;--brown:#8A5A2B;--wire:#2F6FDE;--earthy:#F2C500;
+  --good:#17824F;--goodbg:#DDF3E7;--bad:#C0332A;--badbg:#FBE3E0;--warn:#A86B00;--warnbg:#FFF1CC;
+  --fd:'Barlow Condensed','Arial Narrow',sans-serif;--fb:'IBM Plex Sans',system-ui,sans-serif;--fm:'IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#13161A;--card:#1B2026;--card2:#252B33;--ink:#EEF0F2;--mute:#A3ABB5;--line:#343B44;
+  --brand:#F29A4A;--brown:#D09A60;--wire:#5B97FF;--earthy:#F5CE2B;
+  --good:#4CC38A;--goodbg:#10382A;--bad:#FF8076;--badbg:#42191A;--warn:#F0B84A;--warnbg:#3C2E0B;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#13161A;--card:#1B2026;--card2:#252B33;--ink:#EEF0F2;--mute:#A3ABB5;--line:#343B44;
+  --brand:#F29A4A;--brown:#D09A60;--wire:#5B97FF;--earthy:#F5CE2B;
+  --good:#4CC38A;--goodbg:#10382A;--bad:#FF8076;--badbg:#42191A;--warn:#F0B84A;--warnbg:#3C2E0B;color-scheme:dark}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.45 var(--fb);
+  padding-block:10px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3,p{margin:0}
+.wrap{max-width:600px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.top h1{font:700 30px/1 var(--fd);letter-spacing:.01em}
+.pill{font:600 12px var(--fm);color:var(--brand);letter-spacing:.06em;text-transform:uppercase}
+.sticky{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;flex-direction:column;gap:6px;background:var(--bg);padding-bottom:6px}
+.stage{position:relative;height:clamp(190px,33vh,300px);border:1px solid var(--line);border-radius:14px;background:var(--card2);overflow:hidden;touch-action:none}
+.stage canvas{display:block;width:100%;height:100%}
+.tag3d{position:absolute;left:10px;bottom:8px;right:10px;font:600 12px var(--fm);color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:5px 8px;pointer-events:none;width:fit-content;max-width:calc(100% - 20px)}
+.hint3d{position:absolute;right:8px;top:8px;font:500 11px var(--fm);color:var(--mute);pointer-events:none}
+.no3d{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:16px;color:var(--mute);font-size:14px}
+.phases{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.phases i{font:600 10px var(--fm);text-align:center;padding:5px 2px;border-radius:6px;background:var(--card2);color:var(--mute);font-style:normal;letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.phases i.on{background:var(--brand);color:var(--card)}
+.phases i.ok{background:var(--goodbg);color:var(--good)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.fiche{display:flex;flex-direction:column;gap:10px}
+.fiche h2{font:700 28px/1.05 var(--fd);text-transform:capitalize}
+.fiche h2.q{font:600 19px/1.3 var(--fb);text-transform:none}
+#nx:empty{display:none}
+.pill{text-transform:uppercase}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{font:500 13px var(--fm);background:var(--card2);border-radius:6px;padding:4px 8px}
+.fiche ul{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:14px}
+.fiche li{display:contents}
+.fiche li b{font:500 13px var(--fm);text-align:right}
+.lead{color:var(--mute);font-size:14px}
+.btn{appearance:none;border:0;border-radius:10px;background:var(--brand);color:var(--card);font:600 16px var(--fb);padding:14px 18px;cursor:pointer;width:100%}
+.btn.alt{background:var(--card2);color:var(--ink);border:1px solid var(--line)}
+.btn:active,.opt:not(:disabled):active{transform:translateY(1px)}
+:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.qh{display:flex;justify-content:space-between;font:600 12px var(--fm);color:var(--mute);letter-spacing:.05em;text-transform:uppercase}
+.q{font:600 19px/1.3 var(--fb);text-wrap:pretty}
+.ctx{background:var(--card2);border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.5}
+.ctx b{font-family:var(--fm);font-weight:500}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{appearance:none;text-align:left;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:12px;font:500 16px/1.35 var(--fb);display:flex;flex-direction:column;gap:6px;cursor:pointer;width:100%}
+.opt .row{display:flex;gap:10px;align-items:flex-start}
+.opt .k{flex:none;width:24px;height:24px;border-radius:6px;border:1.5px solid var(--line);display:grid;place-items:center;font:600 13px var(--fm);color:var(--mute)}
+.opt .why{display:none;font:400 14px/1.5 var(--fb);color:var(--ink);padding-left:34px}
+.opt .why b{font:700 13px var(--fm);letter-spacing:.04em;text-transform:uppercase;display:block;margin-bottom:1px}
+.opt:disabled{cursor:default}
+.opt.shown .why{display:block}
+.opt.good{border-color:var(--good);background:var(--goodbg)}
+.opt.good .why b{color:var(--good)}
+.opt.bad{border-color:var(--bad);background:var(--badbg)}
+.opt.bad .why b{color:var(--bad)}
+.opt.other .why b{color:var(--mute)}
+.res{text-align:center;align-items:center}
+.res .score{font:700 84px/1 var(--fd)}
+.rec{list-style:none;margin:0;padding:0;width:100%;display:flex;flex-direction:column;gap:10px;text-align:left;font-size:14px}
+.rec li{border-left:4px solid var(--bad);padding:2px 0 2px 10px}
+.rec li b{display:block}
+.rec li span{color:var(--mute)}
+.mode{position:absolute;left:8px;top:8px;appearance:none;font:600 12px var(--fb);background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
+.more{background:var(--card2);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;font-size:14px;line-height:1.5}
+.more h3{font:700 17px var(--fd);letter-spacing:.04em;text-transform:uppercase;margin:0 0 2px}
+.more dl{margin:0;display:flex;flex-direction:column;gap:10px}
+.more dt{font-weight:600}
+.more dd{margin:0}
+.more .gap{border-top:1px solid var(--line);padding-top:10px}
+.lnk{appearance:none;background:none;border:0;color:var(--brand);font:600 15px var(--fb);padding:6px 0;text-align:left;cursor:pointer;text-decoration:underline}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+body{margin:0}[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<main class="wrap">
+ <div class="top"><h1>Chantier Électrique</h1><span class="pill" id="pill"></span></div>
+ <div class="sticky">
+  <div class="stage" id="stage"><canvas id="cv"></canvas><div class="hint3d" id="hint">glisse pour tourner</div><button class="mode" id="mode" type="button">Voir l’intérieur</button><div class="tag3d" id="tag" hidden></div></div>
+  <div class="phases" id="phases"></div>
+ </div>
+ <div id="app"></div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pickR=a=>a[Math.floor(Math.random()*a.length)];
+const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const fx=n=>String(Math.round(n*10)/10).replace('.',',');
+const kw=w=>fx(w/1000)+' kW';
+const APP={plaque:['Plaque de cuisson',5500],four:['Four',2500],lavevaisselle:['Lave-vaisselle',2000],lavelinge:['Lave-linge',2200],sechelinge:['Sèche-linge',2500],chauffeeau:['Chauffe-eau',2500],rad:['Radiateur électrique',1000],ve:['Borne de recharge voiture',7000],portail:['Portail motorisé',500],cuisinepro:['Cuisine professionnelle',12000],ascenseur:['Ascenseur',5000]};
+const RT={entree:['Entrée',0xd9d2c5],sejour:['Séjour',0xc9a27a],cuisine:['Cuisine',0xd6d1c6],chambre:['Chambre',0xbfa58a],sdb:['Salle de bain',0xc9d3d0],buanderie:['Buanderie',0xd2ccc0],garage:['Garage',0x8f949a],hall:['Hall',0xcbb89a],technique:['Local technique',0x9aa0a6]};
+const STD=[3,6,9,12,15,18,24,30,36];
+const SP={C16:'16 A en 1,5 mm²',C20:'20 A en 2,5 mm²',C32:'32 A en 6 mm²'};
+/* Tire un bâtiment au hasard : pièces, étages, chauffage */
+function gen(){
+ const type=pickR(['appartement','maison','villa','hôtel']),rooms=[];
+ const add=(k,fl,w,d,n)=>{const r={id:rooms.length,k,fl,w,d,m2:Math.round(w*d),n:n||RT[k][0]};rooms.push(r);return r};
+ let etages=1,elec=Math.random()<.5;
+ if(type==='appartement'){add('entree',0,2,2);add('sejour',0,rnd(4,6),rnd(4,5));add('cuisine',0,rnd(3,4),3);const nb=rnd(1,3);for(let i=1;i<=nb;i++)add('chambre',0,3.5,rnd(3,4),'Chambre '+i);add('sdb',0,2.5,rnd(2,3))}
+ else if(type==='maison'){add('entree',0,2,2);add('sejour',0,rnd(5,6),rnd(4,5));add('cuisine',0,rnd(3,4),rnd(3,4));add('buanderie',0,2.5,2.5);const nb=rnd(2,4);for(let i=1;i<=nb;i++)add('chambre',0,3.5,rnd(3,4),'Chambre '+i);add('sdb',0,3,rnd(2,3))}
+ else if(type==='villa'){etages=2;add('entree',0,2.5,2.5);add('sejour',0,rnd(6,7),rnd(5,6));add('cuisine',0,4,rnd(3,4));add('buanderie',0,3,2.5);add('garage',0,3.5,6);const nb=rnd(3,4);for(let i=1;i<=nb;i++)add('chambre',1,3.5,4,'Chambre '+i);add('sdb',1,3,2.5,'Salle de bain 1');add('sdb',1,3,2.5,'Salle de bain 2')}
+ else{etages=rnd(2,3);elec=true;add('hall',0,4,4,'Hall d’accueil');add('cuisine',0,4,4,'Cuisine du restaurant');add('technique',0,3,3);for(let f=1;f<=etages;f++){const nb=rnd(3,4);for(let i=1;i<=nb;i++)add('chambre',f,3.5,4,'Chambre '+f+'0'+i)}}
+ const by={};rooms.forEach(r=>(by[r.fl]=by[r.fl]||[]).push(r));
+ for(const f in by){let x=0,z=0,rh=0;for(const r of by[f]){if(x>0&&x+r.w>13){x=0;z+=rh+.15;rh=0}r.x=x+r.w/2;r.z=z+r.d/2;x+=r.w+.15;rh=Math.max(rh,r.d)}}
+ let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9;rooms.forEach(r=>{x0=Math.min(x0,r.x-r.w/2);x1=Math.max(x1,r.x+r.w/2);z0=Math.min(z0,r.z-r.d/2);z1=Math.max(z1,r.z+r.d/2)});
+ const cx=(x0+x1)/2,cz=(z0+z1)/2;rooms.forEach(r=>{r.x-=cx;r.z-=cz;r.y=r.fl*3});
+ const sc={type,rooms,etages,elec,b:{x0:x0-cx,x1:x1-cx,z0:z0-cz,z1:z1-cz},m2:rooms.filter(r=>r.k!=='garage').reduce((s,r)=>s+r.m2,0)};
+ equip(sc);return sc}
+/* Liste des circuits à installer + gros appareils (sert au calcul de puissance) */
+function equip(sc){
+ const R=sc.rooms,f1=k=>R.find(r=>r.k===k),all=k=>R.filter(r=>r.k===k),cs=[],gros=[];
+ const add=(kind,room,o={})=>cs.push({kind,room:room.id,...o});
+ const g=(k,n=1)=>gros.push({k,n,w:APP[k][1],t:APP[k][0]});
+ if(sc.type==='hôtel'){
+  const hall=f1('hall'),cu=f1('cuisine'),tech=f1('technique');
+  add('cuisinepro',cu);g('cuisinepro');g('ascenseur');
+  add('baes',hall);add('lumiere',hall,{pts:6});
+  for(let f=1;f<=sc.etages;f++){const ch=R.filter(r=>r.k==='chambre'&&r.fl===f);add('lumiere',ch[0],{pts:ch.length+1,label:'l’étage '+f});add('prises',ch[0],{n:3*ch.length,label:'l’étage '+f});ch.forEach(c=>add('rad',c));g('rad',ch.length)}
+ }else{
+  const cu=f1('cuisine'),bu=f1('buanderie'),sj=f1('sejour'),sd=f1('sdb'),ch=all('chambre');
+  add('plaque',cu);g('plaque');add('four',cu);g('four');add('lavevaisselle',cu);g('lavevaisselle');
+  if(bu){add('lavelinge',bu);g('lavelinge');if(Math.random()<.6){add('sechelinge',bu);g('sechelinge')}add('chauffeeau',bu);g('chauffeeau')}
+  else{add('lavelinge',cu);g('lavelinge');add('chauffeeau',sd);g('chauffeeau')}
+  if(sc.type==='villa'){const ga=f1('garage');add('ve',ga);g('ve');add('portail',ga);g('portail')}
+  add('lumiere',sj,{pts:R.length+rnd(2,6),label:'toute la maison'});
+  add('prises',cu,{n:6,label:'la cuisine'});
+  add('prises',sj,{n:Math.max(5,Math.ceil(sj.m2/4)),label:'le séjour'});
+  for(let i=0;i<ch.length;i+=2){const gr=ch.slice(i,i+2);add('prises',gr[0],{n:3*gr.length,label:gr.length>1?'les chambres '+gr.map(x=>x.n.replace('Chambre ','')).join(' et '):'la '+gr[0].n.toLowerCase()})}
+  if(Math.random()<.7)add('volet',sj);
+  if(sc.elec){[sj,...ch].forEach(r=>add('rad',r));g('rad',ch.length+1)}
+ }
+ sc.circ=cs;sc.gros=gros}
+function power(sc){
+ const sum=sc.gros.reduce((s,x)=>s+x.w*x.n,0),base=sc.type==='hôtel'?6000:3000,need=base+.4*sum;
+ const k=STD.find(v=>v*1000>=need)||36,tri=k>12;
+ return{sum,base,need,k,tri,I:Math.ceil(k*1000/(tri?690:230))}}
+/* Construit les questions du chantier. Dans chaque question, la 1re réponse est la bonne (mélangée ensuite). */
+const PH=['Source','Tableau','Circuits','Terre','Contrôle'];
+const plural=(n,s)=>n+' '+s+(n>1?'s':'');
+function build(sc){
+ const P=power(sc),hot=sc.type==='hôtel',qs=[];
+ const nm={appartement:'cet appartement',maison:'cette maison',villa:'cette villa','hôtel':'cet hôtel'}[sc.type];
+ const RM=id=>sc.rooms[id];
+ /* 1. Source : puissance et intensité */
+ const idx=STD.indexOf(P.k),lab=v=>v+' kVA '+(v>12?'triphasé':'monophasé');
+ const cand=[idx-1,idx+1,idx-2,idx+2].filter(i=>i>=0&&i<STD.length).slice(0,2);
+ const list=sc.gros.map(g=>g.t+(g.n>1?' ×'+g.n:'')+' '+kw(g.w*g.n)).join(' · ');
+ qs.push({id:'source',ph:0,foc:'src',fx:{t:'src'},q:'Quelle puissance faut-il souscrire pour '+nm+' ?',
+  ctx:'<b>Gros appareils :</b> '+list+'.<br><b>Méthode du jeu :</b> puissance à prévoir = '+kw(P.base)+' + 40 % de la somme des gros appareils (ils ne tournent jamais tous ensemble). Au-dessus de 12 kVA, on prend du triphasé.',
+  o:[[lab(P.k),'Calcul : '+kw(P.base)+' + 40 % de '+kw(P.sum)+' = '+kw(P.need)+'. La première puissance proposée au-dessus est '+P.k+' kVA.'+(P.tri?' Et au-dessus de 12 kVA on passe en triphasé : en monophasé le courant dépasserait 52 A, trop gros sur une seule phase.':' Jusqu’à 12 kVA, le monophasé suffit.')]]
+   .concat(cand.map(i=>{const v=STD[i];return[lab(v),v<P.k?v+' kVA, c’est trop juste : il te faut au moins '+kw(P.need)+'. Le compteur couperait dès que tu allumes plusieurs gros appareils.':v+' kVA, c’est trop : tu paierais un abonnement plus cher pour une puissance que tu n’utiliseras jamais.']}))});
+ const wa=P.tri?Math.ceil(P.k*1000/230):Math.ceil(P.k*1000/690);let wb=Math.max(1,Math.round(P.I/2));if(wb===wa||wb===P.I)wb=P.I+7;
+ qs.push({id:'int',ph:0,foc:'src',fx:{t:'int'},q:'Avec '+lab(P.k)+', quelle est l’intensité maximale ?',
+  ctx:'Formule : intensité = puissance ÷ tension. En monophasé, 230 V. En triphasé, on répartit sur 3 phases.',
+  o:[[P.I+' A'+(P.tri?' par phase':''),P.tri?P.k*1000+' ÷ (3 × 230) ≈ '+P.I+' A sur chaque phase.':P.k*1000+' ÷ 230 ≈ '+P.I+' A.'],
+   [wa+' A'+(P.tri?' par phase':''),P.tri?'Tu as tout mis sur une seule phase (÷ 230). Le triphasé la répartit sur 3, donc ÷ (3 × 230).':'Tu as divisé par 3 comme en triphasé. Ici il n’y a qu’une phase : on divise par 230.'],
+   [wb+' A'+(P.tri?' par phase':''),'Trop petit. Refais la division : puissance en watts ÷ tension.']]});
+ /* 2. Tableau */
+ if(hot){const E=sc.etages,nc=sc.rooms.filter(r=>r.k==='chambre').length;
+  qs.push({id:'tabn',ph:1,foc:'tab',fx:{t:'tab'},q:'Combien de tableaux électriques pour '+nm+' ?',ctx:sc.etages+' étages de chambres, un rez-de-chaussée avec hall, cuisine et local technique.',
+   o:[[(E+1)+' tableaux : 1 général + 1 par étage','Un tableau par étage : si un étage a un défaut, les autres continuent, et on coupe un étage sans toucher au reste.'],
+    ['1 seul tableau pour tout l’hôtel','Une panne couperait tout l’hôtel, et il faudrait des câbles énormes jusqu’à chaque chambre.'],
+    [nc+' tableaux, un par chambre','Beaucoup trop : on regroupe les chambres par étage.']]})}
+ else{
+  qs.push({id:'tabw',ph:1,foc:'tab',fx:{t:'tab'},q:'Où installer le tableau électrique de '+nm+' ?',
+   o:[['Dans la GTL (gaine technique du logement), à l’entrée','La GTL est le placard technique du logement : facile d’accès pour couper vite en cas de problème, au sec et à l’abri.'],
+    ['Dans la salle de bain','L’eau et l’humidité sont dangereuses : un tableau ne va jamais dans une salle d’eau.'],
+    ['Dans les combles, sous le toit','Difficile d’accès : en cas d’urgence, on doit pouvoir tout couper tout de suite.']]});
+  const n=sc.m2>35?3:2;
+  qs.push({id:'nid',ph:1,foc:'tab',fx:{t:'tab'},q:'Combien de différentiels 30 mA au minimum ?',ctx:'Surface du logement : <b>'+sc.m2+' m²</b>.',
+   o:[[String(n),sc.m2+' m² : '+(sc.m2>35?'plus de 35 m², donc au moins 3 différentiels':'35 m² ou moins, donc au moins 2 différentiels')+'. Chacun protège un groupe de circuits : un défaut ne coupe pas toute la maison.'],
+    [String(n-1),'Pas assez pour '+sc.m2+' m². Avec trop peu de différentiels, un seul défaut coupe presque tout.'],
+    [String(n+2),'Ça marcherait, mais c’est plus gros et plus cher que nécessaire. On prend le minimum de la règle.']]});
+  const N=sc.circ.length,mod=N+2*n,need=Math.ceil(mod*1.2),r=Math.ceil(need/13);
+  const rw=r===1?[2,3]:[r+1,r-1];
+  qs.push({id:'size',ph:1,foc:'tab',fx:{t:'tab'},q:'De combien de rangées doit être le tableau ?',ctx:'<b>'+N+' circuits</b> à protéger. Un disjoncteur = 1 module, un différentiel = 2 modules, une rangée = 13 modules, et on garde <b>20 %</b> de place libre.',
+   o:[[plural(r,'rangée'),N+' disjoncteurs + '+n+' différentiels × 2 = '+mod+' modules. Avec 20 % de réserve : '+need+' modules, soit '+r+' rangée'+(r>1?'s':'')+' de 13.'],
+    [plural(rw[0],'rangée'),rw[0]>r?'Plus grand que nécessaire : place et argent perdus. 20 % de réserve suffit.':'Pas assez : '+rw[0]+' rangée'+(rw[0]>1?'s':'')+' = '+13*rw[0]+' modules, il en faut '+need+'.'],
+    [plural(rw[1],'rangée'),rw[1]>r?'Plus grand que nécessaire : place et argent perdus.':'Pas assez : '+rw[1]+' rangée'+(rw[1]>1?'s':'')+' = '+13*rw[1]+' modules, il en faut '+need+'.']]});
+  const cu=sc.rooms.find(r=>r.k==='cuisine');
+  qs.push({id:'diff',ph:1,foc:cu.id,fx:{t:'tab'},q:'Quel type de différentiel pour la plaque de cuisson et le lave-linge ?',
+   o:[['Type A','Ces appareils peuvent créer un courant de fuite « déformé ». Le type A le détecte.'],
+    ['Type AC pour tout','Le type AC va pour des circuits simples (lumières, prises), mais il peut ne pas voir la fuite de ces appareils.'],
+    ['Pas de différentiel sur ces circuits','Tous les circuits d’un logement sont protégés par un différentiel 30 mA.']]})}
+ /* 3. Circuits : on tire au hasard 8 circuits ou règles parmi tous ceux du chantier */
+ const SPEC=(c)=>c.label||RM(c.room).n;
+ function qc(c){const r=RM(c.room),A=APP[c.kind],W=A?kw(A[1]):'';
+  const mk=(q,o,ctx,p)=>({id:c.kind,ph:2,foc:c.room,fx:{t:'circ',c},q,ctx,o,p});
+  const std=[SP.C20,'Un appareil gourmand a droit à un circuit spécialisé : '+SP.C20+', pour lui tout seul.'];
+  const std16=[SP.C16,SP.C16+' est réservé aux lumières et aux petits circuits. Un appareil gourmand a son circuit en 2,5 mm².'];
+  const std32=[SP.C32,'32 A est trop gros pour un fil de 2,5 mm² : il chaufferait sans que le disjoncteur coupe. 32 A va avec du 6 mm², pour la plaque.'];
+  switch(c.kind){
+  case 'plaque':return mk('Quel circuit pour la plaque de cuisson ('+r.n+') ?',[[SP.C32,'Une plaque ('+W+', environ '+Math.round(A[1]/230)+' A, jusqu’à 7 kW selon les modèles) est le plus gros consommateur de la cuisine. La règle lui donne le plus gros circuit : 32 A en 6 mm².'],[SP.C20,SP.C20+' est le circuit d’un four ou d’un lave-linge. La plaque tire plus : le disjoncteur couperait dès que tout chauffe.'],[SP.C16,SP.C16+' est le circuit des lumières. Beaucoup trop faible pour une plaque.']]);
+  case 'four':case 'lavevaisselle':case 'lavelinge':case 'sechelinge':return mk('Quel circuit pour : '+A[0].toLowerCase()+' ('+r.n+') ?',[std,std16,std32],'Appareil de <b>'+W+'</b>.');
+  case 'chauffeeau':return mk('Quel circuit pour le chauffe-eau ('+r.n+') ?',[[SP.C20+' + contacteur jour/nuit','Le chauffe-eau a son circuit spécialisé (20 A, 2,5 mm²). Le contacteur le fait chauffer la nuit, aux heures creuses, moins chères.'],[SP.C16+' + contacteur jour/nuit','Le chauffe-eau est un appareil gourmand qui chauffe longtemps : il a droit à un circuit spécialisé en 2,5 mm², pas en 1,5 mm².'],[SP.C20+' sans contacteur','Ça marche, mais il chaufferait aussi aux heures chères. Le contacteur l’envoie la nuit, où le courant coûte moins.']]);
+  case 've':return mk('Quel circuit pour la borne de recharge ('+r.n+') ?',[[SP.C32,'Une borne de '+W+' tire environ 30 A pendant des heures. Circuit dédié : 32 A en 6 mm².'],[SP.C20,'20 A coupe dès que la voiture charge à pleine puissance, et 2,5 mm² chaufferait pendant des heures.'],[SP.C16,'Bien trop faible : le disjoncteur sauterait immédiatement.']]);
+  case 'portail':return mk('Quel circuit pour le portail motorisé ('+r.n+') ?',[[SP.C16,'Un petit moteur (environ '+W+') : un circuit léger suffit, protégé par un différentiel.'],[SP.C32,'Trop gros : le disjoncteur ne protégerait plus le petit câble du moteur.'],['Une prise du garage','Un portail est un équipement dehors : il a son propre circuit protégé, pas une prise qu’on débranche.']]);
+  case 'volet':return mk('Quel circuit pour les volets roulants ('+r.n+') ?',[[SP.C16,'De petits moteurs : un circuit léger suffit.'],[SP.C32,'Beaucoup trop gros pour de petits moteurs.'],['Le circuit des prises du séjour','Les volets ont leur circuit : un moteur qui bloque ne doit pas faire sauter les prises.']]);
+  case 'rad':return mk('Quel circuit pour le radiateur ('+r.n+') ?',[[SP.C16,'Un radiateur de '+W+' tire '+fx(A[1]/230)+' A. 16 A en 1,5 mm² convient jusqu’à 3 500 W.'],['20 A en 1,5 mm²','Piège : un fil de 1,5 mm² supporte 16 A. Avec un disjoncteur de 20 A, le fil chaufferait avant que ça coupe.'],[SP.C32,'Beaucoup trop gros pour un seul radiateur.']],'Radiateur de <b>'+W+'</b>.',true);
+  case 'lumiere':{const n=Math.ceil(c.pts/8),b=n>1?n-1:n+2,a=n+1;
+   const o=n=>[plural(n,'circuit'),''];const wr=m=>[plural(m,'circuit'),m<n?m>0?plural(m,'circuit')+' ne couvre'+(m>1?'nt':'')+' que '+8*m+' points : il en manque.':'':'Ça marche, mais c’est inutile : '+n+' suffi'+(n>1?'sent':'t')+'.'];
+   return mk('Éclairage de '+SPEC(c)+' : '+c.pts+' points lumineux. Combien de circuits ?',[[plural(n,'circuit'),c.pts+' ÷ 8 = '+fx(c.pts/8)+', on arrondit au-dessus : '+n+'.'],wr(a),wr(b)],'Un circuit d’éclairage = <b>16 A en 1,5 mm²</b>, 8 points lumineux au maximum.')}
+  case 'prises':{const np=c.n,A1='1 circuit '+SP.C16,B1='1 circuit '+SP.C20,C1='2 circuits séparés',ok=np<=5?0:np<=8?1:2;
+   const w=[[A1,ok===0?'5 prises au maximum sur du 1,5 mm² : '+np+' prises, ça passe, et c’est le plus simple.':'Le 1,5 mm² ne permet que 5 prises. Avec '+np+', le fil serait trop chargé.'],
+    [B1,ok===1?'20 A en 2,5 mm² va jusqu’à 8 prises : parfait pour '+np+'.':ok===0?'Possible, mais plus gros que nécessaire pour '+np+' prises : on prend le plus simple.':'Le 2,5 mm² s’arrête à 8 prises. Au-dessus, il faut deux circuits.'],
+    [C1,ok===2?'Au-delà de 8 prises, on sépare en 2 circuits.':'Pas nécessaire : un seul circuit suffit pour '+np+' prises.']];
+   return mk('Dans '+SPEC(c)+', '+np+' prises. Quel est le circuit le plus simple qui convient ?',[w[ok],...w.filter((_,i)=>i!==ok)],'Circuit de prises : <b>16 A en 1,5 mm²</b> (5 prises max) ou <b>20 A en 2,5 mm²</b> (8 prises max).')}
+  case 'baes':return mk('Les blocs de secours des couloirs (éclairage de sécurité) : comment les alimenter ?',[['Sur un circuit à part, protégé séparément de l’éclairage normal','Si l’éclairage normal disjoncte, les blocs de secours restent alimentés et leurs batteries restent chargées.'],['Sur le circuit d’éclairage des couloirs','Si ce circuit saute, les blocs de secours n’ont plus d’alimentation : justement quand on en a besoin.'],['Sur une prise du hall','Une prise peut être débranchée : un équipement de sécurité fixe ne se branche pas sur une prise.']]);
+  case 'cuisinepro':return mk('Comment alimenter la cuisine professionnelle ?',[['Un circuit triphasé spécialisé, avec sa propre protection','Une cuisine pro consomme énormément (ici '+W+') : elle a son circuit triphasé à elle, avec son disjoncteur.'],['Sur les prises de la cuisine','Beaucoup trop de puissance : les prises ne sont pas faites pour ça, et le fil chaufferait.'],['Sur le circuit d’éclairage','Un fil de 1,5 mm² ne supporte pas une telle puissance.']]);
+  }}
+ let pool=sc.circ.map(c=>({c}));
+ if(!hot){const sd=sc.rooms.find(r=>r.k==='sdb');pool.push({x:{id:'sdb',ph:2,foc:sd.id,fx:{t:'none'},p:true,q:'Où poser la prise de la salle de bain ?',ctx:'Volume 0 : dans la baignoire ou la douche. Volume 1 : au-dessus, jusqu’à 2,25 m. Volume 2 : 60 cm autour.',o:[['Hors des volumes 0, 1 et 2, avec un différentiel 30 mA','Loin de l’eau, on peut brancher des appareils ordinaires, protégés par le différentiel 30 mA.'],['Juste au-dessus de la baignoire (volume 1)','Dans le volume 1, les éclaboussures sont trop proches : pas de prise ordinaire.'],['Dans la douche (volume 0)','Volume 0 : jamais de 230 V. Seule une très basse tension y est permise.']]}})}
+ const rk=sc.rooms.filter(r=>hot?r.k==='chambre':['sejour','cuisine','chambre'].includes(r.k));const rr=pickR(rk);
+ {const right=rr.k==='sejour'?Math.max(5,Math.ceil(rr.m2/4)):rr.k==='cuisine'?6:3;let w1=right>2?right-2:right+1,w2=right+3;if(w1===w2)w2++;
+  pool.push({x:{id:'nbp',ph:2,foc:rr.id,fx:{t:'none'},q:'Combien de prises au minimum dans : '+rr.n+' ('+rr.m2+' m²) ?',o:[[String(right),rr.k==='sejour'?'Une prise par tranche de 4 m², minimum 5 : '+rr.m2+' ÷ 4 = '+fx(rr.m2/4)+', donc '+right+'.':rr.k==='cuisine'?'Plus de 4 m² : 6 prises, dont 4 au-dessus du plan de travail.':'3 prises par chambre.'],[String(w1),'Pas assez : la règle impose au moins '+right+'.'],[String(w2),'Possible, mais pas obligatoire : le minimum est '+right+'.']]}})}
+ const seen={},pick=[];
+ shuf(pool).forEach(e=>{const k=e.c?e.c.kind:'x'+pick.length;const lim=e.c&&e.c.kind==='prises'?2:1;if(pick.length<8&&(seen[k]||0)<lim){seen[k]=(seen[k]||0)+1;pick.push(e)}});
+ pick.forEach(e=>qs.push(e.c?qc(e.c):e.x));
+ /* 4. Terre */
+ const mal=['Relier le fil vert-jaune au neutre','Le neutre transporte du courant en marche normale : ce n’est pas une terre, et ça peut devenir dangereux.'];
+ qs.push({id:'terre',ph:3,foc:'earth',fx:{t:'earth'},q:'Comment réaliser la prise de terre de '+nm+' ?',
+  o:sc.type==='appartement'?[['Relier la borne de terre du tableau à la terre de l’immeuble, déjà existante','Dans un immeuble, la prise de terre est commune : on se relie à la borne de terre du bâtiment.'],['Planter un piquet dans le salon','Impossible dans un appartement, et le sol n’est pas à toi.'],mal]
+  :hot?[['Une prise de terre pour tout le bâtiment, avec des liaisons équipotentielles (dont les salles de bain)','Beaucoup de métal (tuyaux, ascenseur, baignoires) : on relie tout à la terre pour qu’il n’y ait pas de choc entre deux objets.'],['Rien : l’ascenseur et la structure métallique sont déjà à la terre','On ne compte jamais sur l’existant : il faut une vraie prise de terre et des liaisons, qu’on mesure ensuite.'],mal]
+  :[['Une boucle de cuivre au fond des fouilles, sous les fondations, reliée à la borne de terre du tableau','Elle est enterrée avant de couler le béton : très efficace, et elle dure autant que la maison.'],['Pas de prise de terre : le différentiel suffit','Sans terre, la fuite n’a nulle part où aller : le différentiel ne verrait rien et tu pourrais devenir le chemin du courant.'],mal]});
+ /* 5. Contrôle avant mise sous tension */
+ qs.push({id:'final',ph:4,foc:'all',fx:{t:'final'},q:hot?'Tout est posé. Que faut-il avant d’ouvrir l’hôtel au public ?':'Tout est posé. Qu’est-ce qui permet à Enedis de mettre le courant ?',
+  o:hot?[['Un contrôle de l’installation par un organisme agréé','Un hôtel reçoit du public : l’installation est contrôlée par un tiers avant l’ouverture, pour vérifier qu’elle est sûre.'],['Rien : l’électricien a fini, donc c’est bon','Même un bon électricien peut se tromper. Dans un lieu public, on fait vérifier par quelqu’un d’autre.'],['Un contrôle seulement dans 5 ans','Trop tard : le contrôle se fait avant l’ouverture, puis régulièrement.']]
+  :[['L’attestation de conformité du Consuel','Le Consuel contrôle que l’installation est conforme et sûre. Sans son attestation, Enedis ne met pas le courant dans un logement neuf.'],['Le certificat du fabricant des disjoncteurs','Il prouve que l’appareil est bon, pas que l’installation est bien faite.'],['Rien : on branche dès que le dernier câble est posé','Brancher sans contrôle est interdit et dangereux : un défaut caché peut provoquer un incendie.']]});
+ return qs}
+/* Mots à connaître : repérés automatiquement dans la question, puis expliqués simplement */
+const GLOS=[
+ [/gtl|gaine technique/i,'GTL (gaine technique du logement)','Le grand placard technique à l’entrée du logement. On y trouve au même endroit le tableau électrique, le disjoncteur de branchement et le coffret de communication (Internet, TV, téléphone). Comme ça, tout est facile à trouver et à couper en cas de problème.'],
+ [/tableau/i,'Tableau électrique','La boîte, souvent blanche, qui reçoit le courant du compteur et le distribue dans la maison par « circuits ». Chaque circuit (prises, lumières, plaque…) a son disjoncteur. Si tu l’ouvres, tu vois des rangées de petits interrupteurs.'],
+ [/disjoncteur/i,'Disjoncteur','Un interrupteur de sécurité qui coupe tout seul s’il passe trop de courant dans un fil (surcharge) ou en cas de court-circuit. Il protège les FILS, pas les personnes. Son calibre, en ampères, dit à partir de quel courant il coupe.'],
+ [/différentiel|30 ?ma/i,'Différentiel 30 mA','Il compare le courant qui part et celui qui revient. S’il en manque un petit peu (30 milliampères), ça fuit quelque part, peut-être à travers une personne : il coupe en une fraction de seconde. Il protège les PERSONNES. Le bouton « T » sert à le tester.'],
+ [/type a\b|type ac\b/i,'Type A et type AC','Deux sortes de différentiels. Le type AC détecte les fuites simples. Le type A détecte en plus celles de certains appareils modernes (plaque, lave-linge) qui « déforment » le courant. Ces appareils doivent donc être protégés par un type A.'],
+ [/calibre|ampère|\d ?a\b/i,'Ampère (A) et calibre','L’ampère mesure la quantité de courant qui passe dans un fil, un peu comme le débit d’un tuyau. Le calibre d’un disjoncteur (16 A, 20 A, 32 A…) est le courant maximum qu’il laisse passer avant de couper.'],
+ [/mm²|section/i,'Section d’un fil (mm²)','C’est la grosseur du fil. Plus il est gros, plus il laisse passer de courant sans chauffer : 1,5 mm² pour les lumières, 2,5 mm² pour les appareils gourmands, 6 mm² pour la plaque. Un fil trop fin pour le courant chauffe : risque d’incendie.'],
+ [/kva|kw\b|watt|puissance/i,'Puissance (W, kW, kVA)','Le watt (W) mesure ce qu’un appareil consomme. 1 kW = 1 000 W. Le kVA, pour une maison, c’est presque la même chose. Plus un appareil chauffe, plus il consomme : plaque, four, radiateur, chauffe-eau.'],
+ [/monophasé|triphasé|phase|neutre/i,'Phase, neutre, monophasé, triphasé','Le courant arrive par des fils : la phase (qui « envoie ») et le neutre (qui « revient »). Monophasé = 1 phase + 1 neutre, comme dans la plupart des maisons (230 V). Triphasé = 3 phases + 1 neutre (400 V entre deux phases), pour les gros besoins : hôtel, gros moteurs, très grosses maisons.'],
+ [/enedis|compteur|linky/i,'Enedis et compteur Linky','Enedis gère les fils et les compteurs du réseau électrique en France. Le compteur Linky mesure ta consommation. Ton fournisseur (EDF, TotalEnergies…) t’envoie la facture, mais c’est Enedis qui s’occupe du compteur et du raccordement.'],
+ [/souscri|abonnement/i,'Puissance souscrite','C’est la puissance maximale que tu choisis dans ton abonnement (3, 6, 9, 12 kVA…). Si tu allumes trop d’appareils ensemble et que tu dépasses, le compteur coupe. Plus elle est grande, plus l’abonnement coûte cher.'],
+ [/spécialisé/i,'Circuit spécialisé','Un circuit qui alimente un seul gros appareil (four, lave-linge, plaque…), avec son propre disjoncteur. Il ne fait pas disjoncter les prises, et son fil est assez gros pour lui.'],
+ [/contacteur|heures creuses/i,'Contacteur jour/nuit et heures creuses','Les heures creuses sont des heures (souvent la nuit) où l’électricité coûte moins cher. Le contacteur jour/nuit est un petit relais dans le tableau qui allume le chauffe-eau à ces heures-là, pour faire des économies.'],
+ [/consuel|attestation/i,'Consuel','Un organisme qui contrôle qu’une installation neuve est conforme et sûre. Après les travaux, il donne une attestation. Sans elle, Enedis ne met pas le courant dans un logement neuf.'],
+ [/prise de terre|boucle|vert-jaune|la terre/i,'Prise de terre','Un fil (vert et jaune) relié à un conducteur enterré dans le sol. Si un appareil a une fuite, le courant file vers la terre au lieu de passer par toi. La « boucle à fond de fouille » est un câble de cuivre posé sous les fondations d’une maison neuve.'],
+ [/équipotentiel/i,'Liaison équipotentielle','Un fil qui relie toutes les pièces métalliques (tuyaux d’eau, gaz, baignoire…) à la terre. Elles sont alors toutes au même niveau électrique : tu ne peux pas prendre un choc en touchant deux objets en même temps.'],
+ [/volume/i,'Volumes de la salle de bain','La règle découpe la salle de bain en zones selon la distance à l’eau. Volume 0 : dans la baignoire ou la douche. Volume 1 : juste au-dessus, jusqu’à 2,25 m. Volume 2 : 60 cm autour. Plus on est près de l’eau, plus les appareils électriques sont limités.'],
+ [/baes|éclairage de sécurité|blocs de secours/i,'Éclairage de sécurité (BAES)','Les petits blocs lumineux des couloirs. Ils ont une batterie et s’allument quand le courant est coupé, pour qu’on voie la sortie en cas d’incendie. Obligatoires dans les hôtels.'],
+ [/module|rangée/i,'Modules et rangées','Dans le tableau, les appareils s’accrochent sur des rails. Un disjoncteur occupe 1 « module » (environ 1,8 cm), un différentiel 2. Une rangée contient 13 modules. On garde 20 % de place libre pour ajouter des circuits plus tard.'],
+ [/surcharge|court-circuit/i,'Surcharge et court-circuit','Surcharge : trop d’appareils sur un même fil, il chauffe. Court-circuit : deux fils se touchent, énormément de courant d’un coup. Dans les deux cas, le disjoncteur doit couper.'],
+ [/organisme agréé|public/i,'Lieu public (ERP)','Un hôtel reçoit du public : on parle d’ERP (établissement recevant du public). Les règles de sécurité sont plus strictes, et l’installation est contrôlée par un organisme agréé avant l’ouverture.'],
+ [/\bvolts?\b|230 v|400 v|tension/i,'Tension (volt)','La tension, en volts (V), c’est un peu la « pression » du courant. Dans une prise de maison : 230 V. En triphasé : 400 V entre deux phases.']];
+const GROS='Pourquoi un fil plus gros pour un appareil gourmand ? Plus le courant est fort, plus le fil chauffe, et un fil plus gros chauffe moins. Règle d’or : le disjoncteur doit toujours protéger le fil le plus fin du circuit. Un disjoncteur trop gros sur un fil trop fin ne coupe pas à temps.';
+const MORE={
+ source:'Quand on dimensionne, on additionne les appareils les plus gourmands, mais on ne prend pas 100 % : il est très rare que tout tourne en même temps. Ce principe s’appelle le foisonnement (ici, on prend 40 %). Trop petit, le compteur coupe souvent. Trop grand, l’abonnement coûte cher pour rien.',
+ int:'L’intensité sert à dimensionner tout le reste : disjoncteur de branchement, câbles, protections. La formule de base : intensité = puissance ÷ tension. En triphasé, la puissance se partage sur 3 phases, donc chaque fil porte 3 fois moins de courant.',
+ tabw:'La GTL est prévue pour les logements neufs : elle regroupe l’arrivée, le tableau et le coffret de communication. On la place dans le logement, à un endroit accessible et sec, jamais dans une pièce humide ni dans un endroit difficile à atteindre.',
+ tabn:'Dans un grand bâtiment, on installe un tableau général puis des tableaux divisionnaires (ici, un par étage). Avantage : une panne reste limitée à un étage, et il y a moins de très longs câbles.',
+ nid:'Un seul différentiel qui protège tout ferait tout sauter à la moindre fuite, même le congélateur. En en mettant plusieurs, on isole la panne. On les répartit par groupes : par exemple un pour la cuisine et la plaque (type A), un pour les lumières, un pour les prises.',
+ size:'Avant d’acheter le tableau, on compte les modules. Si on prend juste, on ne pourra jamais ajouter un circuit (une prise extérieure, une borne de voiture…). C’est pour ça qu’on garde 20 % de place libre.',
+ diff:'Les appareils à électronique (plaque à induction, lave-linge) peuvent laisser passer un courant de fuite « continu » qu’un type AC ne voit pas. Le type A le voit : c’est obligatoire pour ces circuits.',
+ plaque:GROS+' La plaque est le plus gros consommateur : 32 A en 6 mm² est la règle pour une plaque en monophasé.',
+ gros:GROS,
+ chauffeeau:'Le chauffe-eau chauffe plusieurs heures. Avec un contacteur jour/nuit, il chauffe quand le courant est moins cher. Le contacteur est une sorte d’interrupteur piloté par le compteur.',
+ ve:'Une borne de recharge tient la puissance pendant des heures, ce qui chauffe les fils beaucoup plus qu’une prise normale. C’est pour ça qu’elle a son propre circuit, bien dimensionné.',
+ portail:'Un portail est à l’extérieur : humidité, pluie, chocs. Il doit être alimenté par un circuit protégé par un différentiel, jamais par une simple prise qu’on peut débrancher.',
+ volet:'Les moteurs de volets roulants démarrent avec un petit coup de courant. On les met sur leur circuit pour qu’un volet bloqué ne fasse pas sauter les prises ou les lumières.',
+ rad:'Un radiateur de 1 000 W tire environ 4,3 A. Le 16 A en 1,5 mm² convient jusqu’à 3 500 W. Le piège classique : monter le calibre du disjoncteur sans changer le fil. Le fil, lui, ne change pas.',
+ lumiere:'Un point lumineux, c’est un endroit qui s’allume (une lampe au plafond, une applique…). La règle : 8 points au maximum sur un circuit 16 A en 1,5 mm². Au-delà, on fait un deuxième circuit.',
+ prises:'Sur un circuit de prises, on ne limite pas par la puissance mais par le nombre de prises : 5 pour du 1,5 mm², 8 pour du 2,5 mm². Au-delà de 8, on sépare en deux circuits.',
+ baes:'Un bloc de secours s’allume tout seul quand le courant est coupé, grâce à sa batterie. Pour que la batterie reste chargée, il doit être alimenté en permanence, sur son propre circuit.',
+ cuisinepro:'Une cuisine de restaurant consomme énormément (fours, plaques, laveuses). Le triphasé répartit cette puissance sur 3 phases, et un circuit dédié évite de faire sauter le reste de l’hôtel.',
+ sdb:'Dans la salle de bain, l’eau et l’électricité sont très proches. C’est pour ça qu’on découpe la pièce en volumes et qu’on limite ce qu’on a le droit d’installer dans chacun. Tout le circuit est protégé par un différentiel 30 mA.',
+ nbp:'La règle fixe un nombre minimum de prises par pièce pour éviter les rallonges et les multiprises, qui chauffent et causent des incendies.',
+ terre:'La prise de terre est le chemin de secours du courant. Sans elle, le différentiel ne fonctionne pas bien, car il a besoin que la fuite parte quelque part pour la détecter. On mesure la valeur de la prise de terre à la fin des travaux.',
+ final:'Le contrôle avant mise sous tension est une étape de sécurité obligatoire : un défaut caché dans un mur est impossible à voir une fois le plâtre posé, et peut provoquer un incendie des mois plus tard.'};
+['four','lavevaisselle','lavelinge','sechelinge'].forEach(k=>MORE[k]=GROS);
+/* Maquette 3D : une vraie maison posée sur son terrain (jardin, route, arbres). Vue extérieure ou intérieure. */
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim()||'#888888';
+const isDark=()=>{const t=document.documentElement.dataset.theme;return t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches)};
+const REC={plaque:[.8,.06,.8,0x2b2f38],four:[.7,.7,.6,0x4a4f5a],lavevaisselle:[.6,.8,.6,0x9aa6b8],lavelinge:[.6,.8,.6,0xdfe6f0],sechelinge:[.6,.8,.6,0xc9d3e3],rad:[1.1,.55,.12,0xeeeeee],ve:[.35,.6,.2,0x2fbf71],portail:[.6,.6,.6,0x8a6a4a],volet:[1.2,.08,.9,0x7a8aa6],baes:[.4,.2,.1,0x2fbf71],cuisinepro:[1.4,.9,.8,0x5a6170],prises:[.12,.12,.06,0xffffff]};
+const DIR={W:[-1,0],E:[1,0],N:[0,-1],S:[0,1]};
+const S3={ok:false,idle:0,pts:new Map(),mode:'ext',
+ fail(){const s=document.getElementById('stage');const d=document.createElement('div');d.className='no3d';d.textContent='La 3D ne démarre pas sur cet appareil. Le jeu fonctionne quand même, sans la maquette.';s.appendChild(d);document.getElementById('hint').hidden=true;document.getElementById('mode').hidden=true},
+ init(){
+  if(typeof THREE==='undefined'){this.fail();return}
+  try{
+   const cv=document.getElementById('cv'),st=document.getElementById('stage');
+   const r=new THREE.WebGLRenderer({canvas:cv,antialias:true});r.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+   this.r=r;this.sc=new THREE.Scene();this.sc.background=new THREE.Color(isDark()?0x171c24:0xe9ecee);
+   this.cam=new THREE.PerspectiveCamera(40,1,.1,400);
+   this.sc.add(new THREE.HemisphereLight(0xffffff,0x8a8a7a,isDark()?.75:.95));const sun=new THREE.DirectionalLight(0xffffff,.7);sun.position.set(12,24,14);this.sc.add(sun);
+   this.g=new THREE.Group();this.sc.add(this.g);
+   this.th=-.9;this.ph=1.0;this.rad=30;this.tgt=new THREE.Vector3();this.gt=new THREE.Vector3();this.gr=30;
+   const fit=()=>{const w=st.clientWidth,h=st.clientHeight;if(!w||!h)return;r.setSize(w,h,false);this.cam.aspect=w/h;this.cam.updateProjectionMatrix()};
+   new ResizeObserver(fit).observe(st);fit();
+   cv.addEventListener('pointerdown',e=>{this.pts.set(e.pointerId,[e.clientX,e.clientY]);try{cv.setPointerCapture(e.pointerId)}catch(_){}this.idle=0});
+   cv.addEventListener('pointermove',e=>{const p=this.pts.get(e.pointerId);if(!p)return;this.idle=0;
+    if(this.pts.size===1){this.th-=(e.clientX-p[0])*.01;this.ph=Math.min(1.5,Math.max(.25,this.ph-(e.clientY-p[1])*.01))}
+    else if(this.pts.size===2){const o=[...this.pts.entries()].find(([id])=>id!==e.pointerId)[1],d0=Math.hypot(p[0]-o[0],p[1]-o[1]),d1=Math.hypot(e.clientX-o[0],e.clientY-o[1]);if(d1>0)this.gr=this.rad=Math.min(90,Math.max(5,this.rad*d0/d1))}
+    this.pts.set(e.pointerId,[e.clientX,e.clientY])});
+   const up=e=>this.pts.delete(e.pointerId);cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+   cv.addEventListener('wheel',e=>{e.preventDefault();this.gr=this.rad=Math.min(90,Math.max(5,this.rad*(1+e.deltaY*.001)))},{passive:false});
+   document.getElementById('mode').addEventListener('click',()=>this.setMode(this.mode==='ext'?'int':'ext'));
+   matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>this.theme());
+   this.ok=true;this.setMode('ext');this.loop()
+  }catch(e){this.ok=false;this.fail()}},
+ setMode(m){this.mode=m;const b=document.getElementById('mode');b.textContent=m==='ext'?'Voir l’intérieur':'Voir de l’extérieur'},
+ loop(){requestAnimationFrame(()=>this.loop());
+  this.idle++;if(this.idle>240&&!matchMedia('(prefers-reduced-motion:reduce)').matches)this.th+=.002;
+  this.tgt.lerp(this.gt,.08);this.rad+=(this.gr-this.rad)*.08;
+  const s=Math.sin(this.ph);this.cam.position.set(this.tgt.x+this.rad*s*Math.sin(this.th),this.tgt.y+this.rad*Math.cos(this.ph),this.tgt.z+this.rad*s*Math.cos(this.th));
+  this.cam.lookAt(this.tgt);
+  if(this.wm){const t=this.mode==='ext'?1:.14;this.wm.opacity+=(t-this.wm.opacity)*.15;this.wm.depthWrite=this.wm.opacity>.9;this.extG.visible=this.mode==='ext'}
+  this.r.render(this.sc,this.cam)},
+ theme(){if(!this.ok)return;const d=isDark();this.sc.background.set(d?0x171c24:0xe9ecee);if(this.grass)this.grass.color.set(d?0x3f6b3c:0x7ba85a)},
+ clear(){if(!this.g)return;while(this.g.children.length){const c=this.g.children.pop();c.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&o.material.dispose)o.material.dispose()})}},
+ L(color,o={}){return new THREE.MeshLambertMaterial({color,...o})},
+ B(parent,w,h,d,mat,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);parent.add(m);return m},
+ isExt(r,s){const R=this.S.rooms,hz=s==='W'||s==='E',e=hz?(s==='W'?r.x-r.w/2:r.x+r.w/2):(s==='N'?r.z-r.d/2:r.z+r.d/2);
+  return !R.some(q=>q!==r&&q.fl===r.fl&&(hz?Math.abs((s==='W'?q.x+q.w/2:q.x-q.w/2)-e)<.4&&Math.min(q.z+q.d/2,r.z+r.d/2)-Math.max(q.z-q.d/2,r.z-r.d/2)>.5:Math.abs((s==='N'?q.z+q.d/2:q.z-q.d/2)-e)<.4&&Math.min(q.x+q.w/2,r.x+r.w/2)-Math.max(q.x-q.w/2,r.x-r.w/2)>.5))},
+ above(r){return this.S.rooms.some(q=>q.fl===r.fl+1&&Math.abs(q.x-r.x)<(q.w+r.w)/2-.3&&Math.abs(q.z-r.z)<(q.d+r.d)/2-.3)},
+ load(sc){if(!this.ok)return;this.clear();this.S=sc;this.rm={};this.fix=[];this.gar=null;this.tab=null;this.src=null;this.earth=null;this.cnt={};this.ftab={};
+  const b=sc.b,W=b.x1-b.x0,D=b.z1-b.z0,d=isDark(),B=this.B.bind(this),Lm=this.L.bind(this);
+  this.R=Math.max(W,D)*1.15+8+sc.etages*2;const G=Math.max(W,D)/2+17;
+  this.wm=Lm(0xefebe3,{transparent:true,opacity:1});this.glass=Lm(0x2a3440);this.extG=new THREE.Group();this.g.add(this.extG);
+  /* terrain : disque d’herbe, route, arbres */
+  this.grass=Lm(d?0x3f6b3c:0x7ba85a);const gm=new THREE.Mesh(new THREE.CylinderGeometry(G,G,.6,56),[Lm(0x6b4f35),this.grass,Lm(0x6b4f35)]);gm.position.y=-.3;this.g.add(gm);
+  const rx=b.x0-10.5,rl=2*Math.sqrt(Math.max(4,G*G-rx*rx))-1;B(this.g,4,.04,rl,Lm(0x595d63),rx,.02,0);
+  for(let z=-rl/2+2;z<rl/2-1;z+=3)B(this.g,.12,.05,1.4,Lm(0xe8e8e8),rx,.05,z);
+  const free=(x,z)=>x>b.x0-6&&x<b.x1+6&&z>b.z0-6&&z<b.z1+6||Math.abs(x-rx)<3.2||x*x+z*z>(G-2)*(G-2);
+  for(let i=0,n=0;i<80&&n<9;i++){const x=(Math.random()*2-1)*(G-2),z=(Math.random()*2-1)*(G-2);if(free(x,z))continue;n++;const h=1.4+Math.random()*1.2;
+   B(this.g,.3,h,.3,Lm(0x6a4a2e),x,h/2,z);const cr=new THREE.Mesh(new THREE.SphereGeometry(1+Math.random()*.6,10,8),Lm(Math.random()<.5?0x3f7d3a:0x4f9145));cr.position.set(x,h+.9,z);this.g.add(cr)}
+  /* pièces : sol, murs, contour de surbrillance, meubles */
+  const H=2.6,hl=css('--brand');
+  sc.rooms.forEach(r=>{const col=RT[r.k][1],hlm=new THREE.LineBasicMaterial({color:hl});
+   B(this.g,r.w,.12,r.d,Lm(col),r.x,r.y+.06,r.z);
+   B(this.g,r.w+.15,H,.15,this.wm,r.x,r.y+H/2,r.z-r.d/2);B(this.g,r.w+.15,H,.15,this.wm,r.x,r.y+H/2,r.z+r.d/2);
+   B(this.g,.15,H,r.d,this.wm,r.x-r.w/2,r.y+H/2,r.z);B(this.g,.15,H,r.d,this.wm,r.x+r.w/2,r.y+H/2,r.z);
+   const hm=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(r.w+.1,H+.1,r.d+.1)),hlm);hm.position.set(r.x,r.y+H/2,r.z);hm.visible=false;this.g.add(hm);this.rm[r.id]={hl:hm};
+   this.furn(r)});
+  /* extérieur : fenêtres, portes, toits, allée, haies, immeuble voisin */
+  const E=this.extG,gl=this.glass,fr=Lm(0xffffff),dr=Lm(0x7a4a2b),roofM=Lm(0xa9503a,{side:THREE.DoubleSide}),slab=Lm(0x7d8287);
+  let door=null;const ent=sc.rooms.find(x=>x.k==='entree'||x.k==='hall');
+  sc.rooms.forEach(r=>['W','E','N','S'].forEach(s=>{if(!this.isExt(r,s))return;const hz=s==='W'||s==='E',len=hz?r.d:r.w,n=DIR[s],wx=r.x+(hz?n[0]*(r.w/2+.09):0),wz=r.z+(hz?0:n[1]*(r.d/2+.09));
+   const place=(u,w,h,y,m,mm)=>{const ox=hz?0:u,oz=hz?u:0;B(E,hz?.05:w,h,hz?w:.05,m,wx+ox,r.y+y,wz+oz)};
+   if(r.k==='garage'&&s==='W'){place(0,2.6,2.2,1.1,Lm(0x9aa0a6));door=door||null;this.gar={r,s};return}
+   if(ent===r&&!door){door={r,s,x:wx,z:wz};place(0,1.1,2.2,1.1,dr);return}
+   const k=Math.max(1,Math.floor(len/2.4));for(let i=0;i<k;i++){const u=(i-(k-1)/2)*(len/k);place(u,1.3,1.2,1.5,fr);place(u,1.1,1,1.5,gl)}}));
+  const tf=sc.etages-1,gable=sc.type==='maison'||sc.type==='villa';
+  if(gable){const T=sc.rooms.filter(r=>r.fl===tf);let x0=1e9,x1=-1e9,z0=1e9,z1=-1e9;T.forEach(r=>{x0=Math.min(x0,r.x-r.w/2);x1=Math.max(x1,r.x+r.w/2);z0=Math.min(z0,r.z-r.d/2);z1=Math.max(z1,r.z+r.d/2)});
+   const w=x1-x0+.8,dd=z1-z0+.8,alongX=w>=dd,span=alongX?dd:w,len=alongX?w:dd,h=Math.min(2.4,span*.32),sh=new THREE.Shape();sh.moveTo(-span/2,0);sh.lineTo(span/2,0);sh.lineTo(0,h);sh.closePath();
+   const eg=new THREE.ExtrudeGeometry(sh,{depth:len,bevelEnabled:false});eg.translate(0,0,-len/2);if(alongX)eg.rotateY(Math.PI/2);
+   const rm=new THREE.Mesh(eg,roofM);rm.position.set((x0+x1)/2,tf*3+H,(z0+z1)/2);E.add(rm)}
+  sc.rooms.forEach(r=>{if(this.above(r)||(gable&&r.fl===tf))return;B(E,r.w+.5,.2,r.d+.5,slab,r.x,r.y+H+.1,r.z)});
+  if(sc.type==='appartement'){const w=W+.6,dd=D+.6;[0,1].forEach(i=>{B(E,w,2.9,dd,Lm(i?0xe2ddd2:0xd8d2c6),(b.x0+b.x1)/2,H+.3+1.45+i*3,(b.z0+b.z1)/2)})}
+  if(sc.type==='hôtel'&&door){try{const c=document.createElement('canvas');c.width=256;c.height=80;const x=c.getContext('2d');x.fillStyle='#2d2f33';x.fillRect(0,0,256,80);x.fillStyle='#f2c94c';x.font='700 46px sans-serif';x.textAlign='center';x.fillText('HÔTEL',128,57);
+   const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c)}));sp.scale.set(4,1.25,1);sp.position.set(door.x-1.6,door.r.y+H+1.1,door.z);E.add(sp)}catch(e){}}
+  if(door){const n=DIR[door.s],hz=door.s==='W'||door.s==='E';B(this.g,hz?7:1.3,.05,hz?1.3:7,Lm(0xcfc8ba),door.x+(hz?n[0]*3.6:0),.03,door.z+(hz?0:n[1]*3.6))}
+  if(this.gar){const gx=this.gar.r.x-this.gar.r.w/2;B(this.g,8,.05,3.2,Lm(0xa5a9ad),gx-4.1,.03,this.gar.r.z)}
+  if(sc.type==='hôtel')B(this.g,6,.05,Math.min(D,14),Lm(0x6f7378),b.x1+4,.03,0);
+  if(sc.type!=='appartement'){const hg=Lm(0x2f6b34),x0=b.x0-5,x1=b.x1+5,z0=b.z0-5,z1=b.z1+5,gap=door&&(door.s==='W')?door.z:null;
+   const hedge=(ax,az,bx,bz)=>{const hz=ax===bx,len=hz?bz-az:bx-ax;B(this.g,hz?.6:len,.9,hz?len:.6,hg,(ax+bx)/2,.45,(az+bz)/2)};
+   hedge(x0,z1,x1,z1);hedge(x0,z0,x1,z0);hedge(x1,z0,x1,z1);
+   if(gap===null)hedge(x0,z0,x0,z1);else{hedge(x0,z0,x0,gap-1.3);hedge(x0,gap+1.3,x0,z1)}}
+  this.home=new THREE.Vector3(0,sc.etages*1.2,0);this.th=-.9;this.ph=1.0;this.rad=this.R*1.3;this.tgt.copy(this.home);this.setMode('ext');this.focus('all')},
+ furn(r){const y=r.y,Lm=this.L.bind(this),B=this.B.bind(this),g=this.g;
+  if(r.k==='sejour'){B(g,2.2,.5,.9,Lm(0x8b6b4e),r.x,y+.37,r.z+r.d/2-1);B(g,1.3,.4,.8,Lm(0xb08a5e),r.x,y+.32,r.z-.2)}
+  else if(r.k==='chambre'){B(g,1.6,.45,2,Lm(0xe8e1d5),r.x-r.w/2+1.2,y+.35,r.z);B(g,.1,.9,1.6,Lm(0x7a5a3c),r.x-r.w/2+.4,y+.55,r.z)}
+  else if(r.k==='cuisine'||r.k==='buanderie'){B(g,Math.max(1.5,r.w-.9),.9,.6,Lm(0xd9d3c7),r.x,y+.57,r.z-r.d/2+.5)}
+  else if(r.k==='sdb'){B(g,1.7,.55,.8,Lm(0xf4f4f2),r.x+r.w/2-1.1,y+.4,r.z-r.d/2+.6)}
+  else if(r.k==='garage'){B(g,1.8,.7,3.6,Lm(0x9b2f2f),r.x,y+.5,r.z);B(g,1.6,.5,1.8,Lm(0x7b2222),r.x,y+1.05,r.z)}
+  else if(r.k==='hall'){B(g,2.6,1,.7,Lm(0x8b6b4e),r.x,y+.6,r.z+r.d/2-1.2)}},
+ tpos(){const r=this.S.rooms.find(x=>x.k==='entree'||x.k==='technique');return new THREE.Vector3(r.x-r.w/2+.4,r.y+1.2,r.z)},
+ seg(a,b,color,rad=.05){const d=new THREE.Vector3().subVectors(b,a),len=d.length();
+  if(len<1e-4)return new THREE.Object3D();const mat=new THREE.MeshBasicMaterial({color});const m=new THREE.Mesh(new THREE.CylinderGeometry(rad,rad,len,6),mat);
+  m.position.copy(a).addScaledVector(d,.5);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.clone().normalize());m.userData.mat=mat;return m},
+ wire(pts,good,rad){const col=new THREE.Color(good?css('--good'):css('--bad')),mats=[];
+  for(let i=0;i<pts.length-1;i++){const s=this.seg(pts[i],pts[i+1],col.clone(),rad);this.g.add(s);if(s.userData.mat)mats.push(s.userData.mat)}
+  if(!good)this.fix.push(...mats)},
+ fixRed(){if(!this.ok)return;const ok=new THREE.Color(css('--good'));this.fix.forEach(m=>m.color.copy(ok));this.fix=[]},
+ box(w,h,d,color,p){return this.B(this.g,w,h,d,this.L(color),p.x,p.y,p.z)},
+ focus(f){if(!this.ok)return;const S=this.S,tag=document.getElementById('tag');let txt='';
+  Object.values(this.rm).forEach(o=>{o.hl.visible=false});
+  if(f==='all'){this.gt.copy(this.home);this.gr=this.R*1.3}
+  else if(f==='src'){const t=this.tpos();this.gt.set(S.b.x0-2,2,t.z);this.gr=this.R*.95;txt='Arrivée du réseau'}
+  else if(f==='tab'){const t=this.tpos();this.gt.copy(t);this.gr=this.R*.7;txt='Tableau électrique'}
+  else if(f==='earth'){this.gt.set(0,0,0);this.gr=this.R*1.1;txt='Prise de terre'}
+  else{const r=S.rooms[f];this.gt.set(r.x,r.y+1.2,r.z);this.gr=Math.max(r.w,r.d)*1.9+7;txt=r.n;this.rm[f].hl.visible=true}
+  tag.hidden=!txt;tag.textContent=txt},
+ apply(fx,good){if(!this.ok||!fx)return;const S=this.S,b=S.b,t=this.tpos(),V=(x,y,z)=>new THREE.Vector3(x,y,z);
+  if(fx.t==='src'&&!this.src){this.src=1;const px=b.x0-7;
+   this.box(.25,6.5,.25,0x7a5a3c,V(px,3.25,t.z));this.box(2.2,.15,.15,0x7a5a3c,V(px,6,t.z));
+   this.box(.5,.7,.25,0xffd27f,V(b.x0-.15,1.4,t.z));
+   this.wire([V(px,6,t.z),V(b.x0-.15,2.4,t.z),V(b.x0-.15,1.75,t.z)],good,.06);this.wire([V(b.x0-.15,1.2,t.z),t],good,.06)}
+  else if(fx.t==='tab'&&!this.tab){this.tab=this.box(.25,.8,.6,0xffd27f,t);
+   if(S.type==='hôtel'){for(let f=1;f<=S.etages;f++){const r=S.rooms.find(x=>x.k==='chambre'&&x.fl===f),p=V(r.x-r.w/2+.4,r.y+1.2,r.z);this.ftab[f]=p;this.box(.25,.8,.6,0xffd27f,p);this.wire([t,V(t.x,p.y,t.z),V(p.x,p.y,t.z),p],good,.07)}}}
+  else if(fx.t==='circ'){this.addCirc(fx.c,good)}
+  else if(fx.t==='earth'&&!this.earth){this.earth=1;const y=.16,x0=b.x0-.7,x1=b.x1+.7,z0=b.z0-.7,z1=b.z1+.7,c=new THREE.Color(css('--brown'));
+   const ps=[V(x0,y,z0),V(x1,y,z0),V(x1,y,z1),V(x0,y,z1),V(x0,y,z0)];for(let i=0;i<4;i++)this.g.add(this.seg(ps[i],ps[i+1],c,.1));
+   this.wire([V(t.x,t.y,t.z),V(t.x,y,t.z),V(x0,y,t.z)],good,.07)}
+  else if(fx.t==='final'){this.glass.color.set(0xffe08a)}},
+ addCirc(c,good){const S=this.S,r=S.rooms[c.room],k=c.kind,i=(this.cnt[r.id]=(this.cnt[r.id]||0)+1)-1,V=(x,y,z)=>new THREE.Vector3(x,y,z);
+  const ox=(r.w/2-.6)*[-.6,.6,-.6,.6][i%4],oz=(r.d/2-.6)*[-.6,-.6,.6,.6][i%4];let pos;
+  if(k==='lumiere'){pos=V(r.x+ox,r.y+2.45,r.z+oz);const m=new THREE.Mesh(new THREE.SphereGeometry(.2,10,8),new THREE.MeshBasicMaterial({color:0xffe08a}));m.position.copy(pos);this.g.add(m)}
+  else if(k==='chauffeeau'){pos=V(r.x+ox,r.y+.9,r.z+oz);const m=new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,1.4,12),this.L(0xdfe6f0));m.position.copy(pos);this.g.add(m)}
+  else if(k==='prises'){pos=V(r.x-r.w/2+.1,r.y+.4,r.z+oz);this.box(.12,.12,.12,0xffffff,pos)}
+  else if(REC[k]){const q=REC[k];pos=V(r.x+ox,r.y+(k==='volet'?1.5:k==='rad'?.5:k==='baes'?2.1:q[1]/2+.1),r.z+oz);this.box(q[0],q[1],q[2],q[3],pos)}
+  else pos=V(r.x,r.y+1,r.z);
+  const T=S.type==='hôtel'&&r.fl>0&&this.ftab[r.fl]?this.ftab[r.fl]:(this.tab?this.tpos():null);if(!T)return;
+  const yc=r.y+2.55;this.wire([T,V(T.x,yc,T.z),V(pos.x,yc,T.z),V(pos.x,yc,pos.z),pos],good,.045)}
+};
+/* Déroulement du jeu : fiche du chantier, questions, explications, infos en plus, résultat */
+const app=document.getElementById('app'),phEl=document.getElementById('phases'),pill=document.getElementById('pill');
+let SC,QS,qi=0,score=0,res=[],ans=false;
+const safe=f=>{try{f()}catch(e){console.error(e)}};
+const phases=cur=>PH.map((p,i)=>'<i class="'+(cur===null?'':cur==='all'||i<cur?'ok':i===cur?'on':'')+'">'+p+'</i>').join('');
+const strip=h=>String(h||'').replace(/<[^>]*>/g,' ');
+function infoHtml(q,after){
+ const base=strip(q.q+' '+(q.ctx||'')+' '+q.o.map(o=>o.t).join(' ')),txt=after?base+' '+strip(q.o.map(o=>o.e).join(' ')):base;
+ const hit=GLOS.filter(g=>g[0].test(txt)).slice(0,7);let h='';
+ if(after&&MORE[q.id])h+='<div><h3>Pour aller plus loin</h3>'+MORE[q.id]+'</div>';
+ if(hit.length)h+='<div'+(h?' class="gap"':'')+'><h3>Mots à connaître</h3><dl>'+hit.map(g=>'<dt>'+g[1]+'</dt><dd>'+g[2]+'</dd>').join('')+'</dl></div>';
+ return h||'Pas de mot compliqué ici.'}
+function newSite(){SC=gen();QS=null;safe(()=>{S3.load(SC);S3.setMode('ext')});intro()}
+function intro(){
+ pill.textContent=SC.type+(SC.etages>1?' · '+SC.etages+' étages':'');phEl.innerHTML=phases(null);
+ const chips=[SC.m2+' m²',SC.rooms.length+' pièces',SC.etages+' étage'+(SC.etages>1?'s':''),SC.elec?'chauffage électrique':'chauffage au gaz'];
+ app.innerHTML='<section class="card fiche"><div class="qh"><span>Chantier tiré au hasard</span></div><h2>'+SC.type+'</h2><div class="chips">'+chips.map(c=>'<span>'+c+'</span>').join('')+'</div>'
+  +'<p class="lead">À toi de faire toute l’installation : la source, le tableau, les circuits, la terre, jusqu’aux récepteurs. Après chaque choix, le jeu explique pourquoi celui-là, et pourquoi pas les autres. Tu peux aussi ouvrir « Voir plus d’infos » pour comprendre les mots techniques.</p>'
+  +'<p class="qh"><span>Gros appareils à alimenter</span></p><ul>'+SC.gros.map(g=>'<li><span>'+g.t+(g.n>1?' ×'+g.n:'')+'</span><b>'+kw(g.w*g.n)+'</b></li>').join('')+'</ul>'
+  +'<button class="btn" id="go">Commencer le chantier</button><button class="btn alt" id="other">Tirer un autre bâtiment</button></section>'}
+function start(){QS=build(SC).map(q=>({...q,o:shuf(q.o.map((o,k)=>({t:o[0],e:o[1],ok:k===0})))}));qi=0;score=0;res=[];ask()}
+function ask(){const q=QS[qi];ans=false;safe(()=>{S3.setMode('int');S3.focus(q.foc)});phEl.innerHTML=phases(q.ph);
+ app.innerHTML='<section class="card fiche"><div class="qh"><span>'+PH[q.ph]+'</span><span>Question '+(qi+1)+'/'+QS.length+'</span></div><h2 class="q">'+q.q+'</h2>'
+  +(q.ctx?'<div class="ctx">'+q.ctx+'</div>':'')
+  +'<div class="opts">'+q.o.map((o,k)=>'<button class="opt" data-k="'+k+'"><span class="row"><span class="k">'+'ABC'[k]+'</span><span>'+o.t+'</span></span><span class="why"></span></button>').join('')+'</div>'
+  +'<div id="nx" class="fiche"><button class="lnk" data-i="1">Mots à connaître</button><div class="more" id="more" hidden></div></div></section>';
+ window.scrollTo(0,0)}
+function pick(k){if(ans)return;ans=true;const q=QS[qi],good=q.o[k].ok,last=qi===QS.length-1;res.push({good,q});if(good)score++;
+ app.querySelectorAll('.opt').forEach((b,j)=>{const o=q.o[j];b.disabled=true;b.classList.add('shown',o.ok?'good':j===k?'bad':'other');
+  b.querySelector('.why').innerHTML='<b>'+(o.ok?'Pourquoi celui-là':j===k?'Pourquoi pas ta réponse':'Pourquoi pas')+'</b>'+o.e});
+ safe(()=>S3.apply(q.fx,good));
+ const nx=document.getElementById('nx');
+ nx.innerHTML=(q.p?'<div class="ctx"><b>'+(good?'Piège évité.':'C’était un piège.')+'</b></div>':'')+'<button class="btn alt" data-i="1">Voir plus d’infos</button><div class="more" id="more" hidden></div><button class="btn" id="next">'+(last?'Voir le résultat':'Continuer')+'</button>';
+ nx.querySelector('.btn.alt').scrollIntoView({block:'nearest',behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'})}
+function toggleInfo(b){const m=document.getElementById('more');if(!m)return;const open=m.hidden;m.hidden=!open;if(open)m.innerHTML=infoHtml(QS[qi],ans);
+ b.textContent=ans?(open?'Masquer les infos':'Voir plus d’infos'):(open?'Masquer les mots':'Mots à connaître')}
+function next(){safe(()=>S3.fixRed());qi++;if(qi<QS.length)ask();else end()}
+function end(){safe(()=>{S3.setMode('ext');S3.focus('all')});phEl.innerHTML=phases('all');const n=QS.length,bad=res.filter(r=>!r.good);
+ const msg=score===n?'Sans faute : l’installation est parfaite.':score>=n*.75?'Très bon chantier. Relis les erreurs ci-dessous.':score>=n*.5?'Chantier correct, mais certaines erreurs seraient dangereuses. Relis les explications.':'Il y a encore du travail. Relis bien les explications, puis retente un autre bâtiment.';
+ app.innerHTML='<section class="card fiche res"><div class="qh"><span>Rapport de chantier</span></div><div class="score">'+score+'/'+n+'</div><p class="lead">'+msg+'</p>'
+  +(bad.length?'<p class="qh"><span>À retenir</span></p><ul class="rec">'+bad.map(r=>{const c=r.q.o.find(o=>o.ok);return'<li><b>'+r.q.q+'</b><span>Bonne réponse : '+c.t+'. '+c.e+'</span></li>'}).join('')+'</ul>':'')
+  +'<button class="btn" id="other">Nouveau chantier au hasard</button></section>';window.scrollTo(0,0)}
+app.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;
+ if(b.classList.contains('opt'))pick(+b.dataset.k);else if(b.dataset.i)toggleInfo(b);else if(b.id==='go'&&!QS)start();else if(b.id==='next')next();else if(b.id==='other')newSite()});
+safe(()=>S3.init());newSite();
+</script>
+
+</body>
+</html>
